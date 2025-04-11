@@ -7,6 +7,7 @@
 
 
 import numpy as np
+import pickle
 
 class LogisticRegression:
     """
@@ -55,7 +56,7 @@ class LogisticRegression:
         # What does each axis represent?
         # Replace the names `axis0` and `axis1` with more something more descriptive.
         
-        axis0 = len(set(y))
+        axis0 = len(np.unique(y))
         axis1 = X.shape[1]
         
         self.weights = np.zeros((axis0, axis1))
@@ -64,7 +65,7 @@ class LogisticRegression:
         # it will be helpful for multinomial classification
         # to be able to convert labels to vectors with a single 1
         # at the index corresponding to the label
-        self.label_mapping = {label: i for i, label in enumerate(set(y))}
+        self.label_mapping = {label: i for i, label in enumerate(np.unique(y))} # Set returns a random order every time
 
     
     # PROVIDED
@@ -108,9 +109,14 @@ class LogisticRegression:
         
         log_vals = -np.log(y_pred) * y_true
         return np.average(log_vals)
+    
+    def _load_model_weights(self, filename: str) -> None:
+        with open(filename, 'rb') as file:
+            self.weights = pickle.load(file)
 
+        print(f"Weights loaded successfully from {filename}!")
 
-    def train(self, X: np.ndarray, y: list, verbose: bool = False) -> None:
+    def train(self, X: np.ndarray, y: list, verbose: bool = False, load_weights_file = None) -> None:
         """
         Trains the model for a certain number of iterations. 
         Gradients must be computed and the weights/biases must be updated at the end of each iteration.
@@ -141,6 +147,11 @@ class LogisticRegression:
         if verbose:
             print(f"Training for {self.num_iterations} iterations")
             print("class mappings: ", self.label_mapping)
+
+        if load_weights_file is not None:
+            self._load_model_weights(load_weights_file)
+            return
+        
         # ----
 
         for i in range(self.num_iterations):
@@ -222,6 +233,17 @@ class LogisticRegression:
 
         # CHECK FOR UNDERSTANDING:
         # How is prediction similar to training? How is it different?
+
+    def save_model_weights(self, filename_prefix='model/logistic_regression_weights'):
+        weights = self.weights
+        shape = weights.shape
+        filename = f"{filename_prefix}_{shape[0]}x{shape[1]}.pkl"
+        
+        with open(filename, 'wb') as file:
+            pickle.dump(weights, file)
+            
+        print(f"Weights saved successfully to {filename}!")
+
         
 
 def save_predictions(true_labels: list, predictions: list, filename: str):
