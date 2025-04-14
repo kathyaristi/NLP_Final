@@ -35,7 +35,7 @@ class FFNN(nn.Module):
         - The forward pass
     """
     
-    def __init__(self, vocab_size: int, embedding_size: int, hidden_units=128, device: str = "cpu"):
+    def __init__(self, vocab_size: int, embedding_size: int, hidden_units=[1024, 128], device: str = "cpu"):
         """
         Initialize a new untrained model. 
         
@@ -68,9 +68,11 @@ class FFNN(nn.Module):
 		# Defining layers
         self.flatten = nn.Flatten() # Useful later to flatten array of ngram-1 after embedding before passing it to the linear layer
         self.linear_relu_stack = nn.Sequential(
-			nn.Linear(in_features=embedding_size, out_features=hidden_units, bias=True),
+			nn.Linear(in_features=embedding_size, out_features=hidden_units[0], bias=True),
 			nn.ReLU(),
-			nn.Linear(in_features=hidden_units, out_features=vocab_size, bias=True)
+            nn.Linear(in_features=hidden_units[0], out_features=hidden_units[1], bias=True),
+            nn.ReLU(),
+			nn.Linear(in_features=hidden_units[1], out_features=vocab_size, bias=True)
 		)
 
         self.to(device)
