@@ -1,10 +1,4 @@
-
-# Starter code for CS 4120, HW 3, Spring 2025
-# Rename this file to lr_model.py
-
-# Pay attention to the CHECK FOR UNDERSTANDING questions.
-# These aren't graded, but you should try answering them.
-
+# This was a model used with starter code for CS 4120, HW 3, Spring 2025
 
 import numpy as np
 import pickle
@@ -24,10 +18,6 @@ class LogisticRegression:
         self.num_iterations = num_iterations
         self.weights = None
 
-    
-    # PROVIDED
-    # Functions preprended with '_' is a naming convention which indicates that the function 
-    # is only for internal use and can only be called within functions of the same class.
     def _softmax(self, x: np.ndarray) -> np.ndarray:
         """
         Given a set of scores, normalize them to sum up to 1.
@@ -42,8 +32,6 @@ class LogisticRegression:
         exp_scores = np.exp(x)
         return exp_scores / np.sum(exp_scores, axis=1, keepdims=True)  
 
-    
-    # PROVIDED
     def _init_weights(self, X: np.ndarray, y: list) -> None:
         """Initializes a weight matrix and biases to 0.
 
@@ -51,20 +39,13 @@ class LogisticRegression:
             X (np.array): The sparse tfidf matrix.
             y (list): List of labels of each document.
         """
-        # CHECK FOR UNDERSTANDING:
-        # Here we create a 2-D array to store our weights.
-        # What does each axis represent?
-        # Replace the names `axis0` and `axis1` with more something more descriptive.
+        vocab_length = len(np.unique(y))
+        num_features = X.shape[1]
         
-        axis0 = len(np.unique(y))
-        axis1 = X.shape[1]
-        
-        self.weights = np.zeros((axis0, axis1))
+        self.weights = np.zeros((vocab_length, num_features))
 
-        # also set up mapping for labels
-        # it will be helpful for multinomial classification
-        # to be able to convert labels to vectors with a single 1
-        # at the index corresponding to the label
+        # Set up mapping for labels
+        # single 1 at the index corresponding to the label
         self.label_mapping = {label: i for i, label in enumerate(np.unique(y))} # Set returns a random order every time
 
     
@@ -104,9 +85,7 @@ class LogisticRegression:
         Returns:
             float: Loss quantifying the distance between the gold labels and the estimates.
         """
-        # TODO: Fill this function.
-        # Utilize numpy operations to make your computations efficient.
-        
+
         log_vals = -np.log(y_pred) * y_true
         return np.average(log_vals)
     
@@ -131,17 +110,13 @@ class LogisticRegression:
             y (list): List of labels of each document.
             verbose (bool): If True, print the epoch number and the loss after each 100th iteration.
         """
-        # PROVIDED
+
         # add a 1 to the end of each row in the X matrix
         # this is to account for the bias term
         X = np.hstack((X, np.ones((X.shape[0], 1))))
 
-        
-        # TODO: Initialize weights
         self._init_weights(X,y)
-        
-        # PROVIDED
-        # ----
+
         encoded_y = self._get_label_as_vector(y)
 
         if verbose:
@@ -151,47 +126,29 @@ class LogisticRegression:
         if load_weights_file is not None:
             self._load_model_weights(load_weights_file)
             return
-        
-        # ----
 
         for i in range(self.num_iterations):
-            # TODO: 1. Compute the predictions for ALL documents
-            # CHECK FOR UNDERSTANDING:
-            # How does dot product work on 2D arrays?
-            # What do we need to know about the shapes of two arrays in order to take their dot product?
-
-            #dot_product = np.dot(self.weights,X.T)
+            # Compute the predictions for ALL documents
+           
             dot_product = np.dot(X, self.weights.T)
             probabilities = self._softmax(dot_product)
 
-            # TODO: 2. Compute the losses and error
+            # Compute the losses and error
 
             losses = self._cross_entropy_loss(encoded_y, probabilities)
-           # error = probabilities.T - encoded_y
             error = probabilities - encoded_y
 
-            # TODO: Print the loss after each 100th iteration if verbose is True
+            # Print the loss after each 100th iteration if verbose is True
             if i%100 == 0 and verbose: 
               print(f"losses: {losses}")
 
-            # TODO: 3. Compute gradients and update weights/biases
-            # CHECK FOR UNDERSTANDING:
-            # What are the shapes of X, and of the error array?
-            # What shape do our gradient weights need to be? 
+            # Compute gradients and update weights/biases
             
             gradients = np.dot(error.T, X)/X.shape[0]
 
             self.weights = self.weights - np.multiply(self.learning_rate,gradients)
-
-            # this pass is here so the function doesn't error out from not having any code
-            # in a for loop - delete it when you start writing code
-            
-  
-        # your model should be trained after this function is run
-        # it does not return anything
-
     
-    def predict(self, X: np.ndarray) ->str:
+    def predict(self, X: np.ndarray, eval=False):
         """Create a function to return the genre a certain document vector belongs to.
 
         Args:
@@ -200,7 +157,6 @@ class LogisticRegression:
         Returns:
             str: A human readable class fetched from self.label_mapping
         """       
-        # TODO: Fill the missing pieces of this function
         # calculate the z scores for the document
         
         X = np.append(X,1)
@@ -208,13 +164,6 @@ class LogisticRegression:
 
         z_score = np.reshape(dot_product, (1, -1))
 
-        # to reshape your array into one with 1 row and n columns
-        # use np.reshape(arr, (1, -1))
-        # the shape of the array you give to 
-        # your softmax function should be (1, n)
-
-
-        # PROVIDED
         # then you can your z score array to the softmax function
         prediction = self._softmax(z_score)
 
@@ -222,17 +171,15 @@ class LogisticRegression:
         #returns index of max 
         predicted_label = np.argmax(prediction, axis=1)[0]
 
-        # TODO: students
         # translate the labels back to human readable form
 
         for key,val in self.label_mapping.items():
-          if val == predicted_label:
+          if val == predicted_label and eval:
+            return key, np.max(prediction, axis=1)
+          elif val == predicted_label:
             return key
       
         return -1
-
-        # CHECK FOR UNDERSTANDING:
-        # How is prediction similar to training? How is it different?
 
     def save_model_weights(self, filename_prefix='model/logistic_regression_weights'):
         weights = self.weights
