@@ -11,7 +11,9 @@ from nltk.tokenize import word_tokenize
 import string
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import LabelEncoder as SklearnLabelEncoder
+from sklearn.metrics import precision_score, recall_score, f1_score
 import torch.optim as optim
+
 
 LEMMATIZER = WordNetLemmatizer()
 STOP_WORDS = set(stopwords.words('english'))
@@ -323,18 +325,16 @@ def full_pipeline(x,y, vocab_size: int,
 
     return nn_model, dataloader_test
 
-def evaluate_model(model, dataloader) -> float:
+def evaluate_model(model, dataloader) -> tuple[float, float, float, float]:
     """
-    Evaluate the model's accuracy on a dataset provided by a DataLoader.
+    Evaluate the model's performance on a dataset provided by a DataLoader.
     
     Parameters:
         model (nn.Module): The PyTorch model to evaluate.
         dataloader (torch.utils.data.DataLoader): DataLoader containing evaluation data.
-        device (str, optional): The device to run inference on, e.g., "cpu" or "cuda".
-            If None, the function will use model.device if available; otherwise, defaults to "cpu".
     
     Returns:
-        float: Accuracy on the evaluation dataset.
+        tuple: A tuple containing accuracy, precision, recall, and F1 score.
     """
     
     # Ensure the model is in evaluation mode.
@@ -342,20 +342,37 @@ def evaluate_model(model, dataloader) -> float:
     
     total_samples = 0
     correct_predictions = 0
+    all_labels = []
+    all_predictions = []
 
     with torch.no_grad():
         for inputs, labels in dataloader:
-            # Move inputs and labels to the specified device.
-            #inputs, labels = inputs.to(device), labels.to(device)
+            # Move inputs and labels to the model's device.
+            inputs, labels = inputs.to(model.device), labels.to(model.device)
             
             outputs = model(inputs)
 
-            # Instead of torch.max(...).data, we use torch.argmax for clarity.
+            # Get the predicted class indices.
             predicted = torch.argmax(outputs, dim=1)
             
             total_samples += labels.size(0)
             correct_predictions += (predicted == labels).sum().item()
+            
+            # Collect all labels and predictions for metric computation.
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
     
+    # Compute accuracy.
     accuracy = correct_predictions / total_samples if total_samples > 0 else 0.0
-    print(f"Accuracy on test set: {accuracy * 100:.2f}% ({correct_predictions}/{total_samples})")
-    return accuracy
+    
+    # Compute precision, recall, and F1 score using sklearn.
+    precision = precision_score(all_labels, all_predictions, average='weighted', zero_division=0)
+    recall = recall_score(all_labels, all_predictions, average='weighted', zero_division=0)
+    f1 = f1_score(all_labels, all_predictions, average='weighted', zero_division=0)
+    
+    print(f"Accuracy: {accuracy * 100:.2f}% ({correct_predictions}/{total_samples})")
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
+    print(f"F1 Score: {f1:.4f}")
+    
+    return accuracy, precision, recall, f1
