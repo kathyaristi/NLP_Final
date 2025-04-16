@@ -2,6 +2,10 @@
 
 import numpy as np
 import pickle
+import string
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 class LogisticRegression:
     """
@@ -148,7 +152,7 @@ class LogisticRegression:
 
             self.weights = self.weights - np.multiply(self.learning_rate,gradients)
     
-    def predict(self, X: np.ndarray, eval=False):
+    def predict(self, X: np.ndarray, eval_mode=False):
         """Create a function to return the genre a certain document vector belongs to.
 
         Args:
@@ -174,7 +178,7 @@ class LogisticRegression:
         # translate the labels back to human readable form
 
         for key,val in self.label_mapping.items():
-          if val == predicted_label and eval:
+          if val == predicted_label and eval_mode:
             return key, np.max(prediction, axis=1)
           elif val == predicted_label:
             return key
@@ -191,7 +195,7 @@ class LogisticRegression:
             
         print(f"Weights saved successfully to {filename}!")
 
-        
+            
 
 def save_predictions(true_labels: list, predictions: list, filename: str):
     """
@@ -205,3 +209,25 @@ def save_predictions(true_labels: list, predictions: list, filename: str):
         f.write('true,prediction\n')
         for pred, true in zip(predictions, true_labels):
             f.write(f'{true},{pred}\n')
+
+#Function to preprocess lyrics
+def preprocess_sentence(lyrics:str) -> str: 
+    lemmatizer = WordNetLemmatizer()
+    stop_words = set(stopwords.words('english')).union(set(stopwords.words('spanish')))  
+    # Apply case-folding on your text.
+    lyrics = lyrics.lower()
+
+    # Remove any punctuations within your sentence.
+    lyrics = lyrics.translate(str.maketrans('', '', string.punctuation))
+    lyrics =lyrics.split('Lyrics', 1)[1].strip() if 'Lyrics' in lyrics else lyrics.strip()
+
+    tokens = word_tokenize(lyrics)
+
+    # Remove stop words and lemmatize your sentence if they are provided
+    if stop_words is not None:
+        tokens = [word for word in tokens if word not in stop_words]
+    if lemmatizer is not None:
+        tokens = [lemmatizer.lemmatize(word) for word in tokens]
+
+    preprocessed = ' '.join(tokens)
+    return preprocessed
