@@ -26,7 +26,6 @@ class Embedder(nn.Module):
     def forward(self, x, batch_size: int):
         return self.model.encode(x, batch_size=batch_size, convert_to_tensor=True)
 
-# 10 points
 
 class FFNN(nn.Module):
     """
